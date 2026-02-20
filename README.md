@@ -30,6 +30,8 @@ streamlit run dashboard.py
 
 | Member | Contributions |
 |--------|--------------|
-| Member 1 | *Describe contributions here* |
-| Member 2 | *Describe contributions here* |
-| Member 3 | *Describe contributions here* |
+| Jan | API integration (PokeAPI fetch functions, caching, error handling), project setup & deployment |
+| Caspar | Combat engine (damage formula, type effectiveness, battle simulation logic) |
+| Lea | Pandas DataFrames (stat comparison with `.melt()`, battle log, HP over time in tidy format) |
+| Ghezlan | Dashboard UI & layout (Streamlit sections, columns, sprites, move selection widgets) |
+| Fouad | Plotly visualizations (stat comparison bar chart, HP over time line chart), testing & QA |
