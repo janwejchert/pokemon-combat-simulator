@@ -4,18 +4,14 @@ import pandas as pd
 import plotly.express as px
 import random
 
-# ──────────────────────────────────────────────
 # Page configuration
-# ──────────────────────────────────────────────
 st.set_page_config(
     page_title="Pokémon Combat Simulator",
     page_icon="⚔️",
     layout="wide",
 )
 
-# ──────────────────────────────────────────────
 # Constants
-# ──────────────────────────────────────────────
 POPULAR_POKEMON = [
     "pikachu", "charizard", "blastoise", "venusaur", "mewtwo",
     "gengar", "dragonite", "snorlax", "gyarados", "alakazam",
@@ -25,15 +21,13 @@ POPULAR_POKEMON = [
     "eevee", "vaporeon", "flareon", "espeon", "umbreon",
 ]
 
-LEVEL = 50  # Fixed level for all Pokémon
+LEVEL = 50
 
 
-# ──────────────────────────────────────────────
-# API Functions (all cached with @st.cache_data)
-# ──────────────────────────────────────────────
+# API Functions
 @st.cache_data
 def fetch_pokemon(name: str):
-    """Fetch Pokémon data from /pokemon/{name} endpoint."""
+    """Fetch Pokemon data from the PokeAPI."""
     try:
         url = f"https://pokeapi.co/api/v2/pokemon/{name.lower().strip()}"
         response = requests.get(url, timeout=10)
@@ -46,7 +40,7 @@ def fetch_pokemon(name: str):
 
 @st.cache_data
 def fetch_move(name: str):
-    """Fetch move details from /move/{name} endpoint."""
+    """Fetch move details from the PokeAPI."""
     try:
         url = f"https://pokeapi.co/api/v2/move/{name}"
         response = requests.get(url, timeout=10)
@@ -59,7 +53,7 @@ def fetch_move(name: str):
 
 @st.cache_data
 def fetch_type(type_name: str):
-    """Fetch type effectiveness data from /type/{name} endpoint."""
+    """Fetch type effectiveness data from the PokeAPI."""
     try:
         url = f"https://pokeapi.co/api/v2/type/{type_name}"
         response = requests.get(url, timeout=10)
@@ -70,11 +64,9 @@ def fetch_type(type_name: str):
         return None
 
 
-# ──────────────────────────────────────────────
 # Data helpers
-# ──────────────────────────────────────────────
 def parse_pokemon(data: dict) -> dict:
-    """Extract relevant fields from raw Pokémon API data."""
+    """Extract name, sprite, types, stats, and moves from API response."""
     return {
         "name": data["name"],
         "sprite": data["sprites"]["front_default"],
@@ -86,11 +78,7 @@ def parse_pokemon(data: dict) -> dict:
 
 @st.cache_data
 def get_damaging_moves(move_names: tuple) -> list:
-    """Return move names that have power > 0 (i.e. damaging moves).
-
-    Checks moves in order and returns all damaging ones found
-    (caps at 50 API checks for performance on first load).
-    """
+    """Filter the move list to only include moves with power > 0."""
     damaging = []
     checked = 0
     for name in move_names:
@@ -98,17 +86,14 @@ def get_damaging_moves(move_names: tuple) -> list:
         checked += 1
         if move_data and move_data.get("power") is not None and move_data["power"] > 0:
             damaging.append(name)
-        # Performance guard – stop after checking 50 moves
+        # Limit API checks for performance
         if checked >= 50:
             break
     return damaging
 
 
 def get_type_effectiveness(move_type: str, defender_types: tuple) -> float:
-    """Compute the type-effectiveness multiplier.
-
-    Multiplies per each defender type (handles dual-type defenders).
-    """
+    """Compute type-effectiveness multiplier against the defender's types."""
     type_data = fetch_type(move_type)
     if type_data is None:
         return 1.0
@@ -131,7 +116,7 @@ def get_type_effectiveness(move_type: str, defender_types: tuple) -> float:
 
 
 def effectiveness_label(eff: float) -> str:
-    """Human-readable label for effectiveness."""
+    """Return a label like 'Super effective!' based on the multiplier."""
     if eff == 0.0:
         return "No effect!"
     elif eff >= 4.0:
@@ -145,25 +130,22 @@ def effectiveness_label(eff: float) -> str:
     return ""
 
 
-# ──────────────────────────────────────────────
 # Combat engine
-# ──────────────────────────────────────────────
 def calculate_damage(attacker_stats, defender_stats, defender_types, move_data):
-    """Calculate damage for a single attack using the simplified formula."""
+    """Calculate damage for a single attack."""
     power = move_data["power"]
     accuracy = move_data["accuracy"] if move_data["accuracy"] else 100
     move_type = move_data["type"]["name"]
     damage_class = move_data["damage_class"]["name"]
 
-    # Choose attack / defense stats based on damage class
+    # Pick attack/defense stats based on damage class
     if damage_class == "physical":
         atk = attacker_stats["attack"]
         dfn = defender_stats["defense"]
-    else:  # special
+    else:
         atk = attacker_stats["special-attack"]
         dfn = defender_stats["special-defense"]
 
-    # Type effectiveness (tuple for hashability in cache)
     effectiveness = get_type_effectiveness(move_type, tuple(defender_types))
 
     # Accuracy check
@@ -172,18 +154,18 @@ def calculate_damage(attacker_stats, defender_stats, defender_types, move_data):
             ((2 * LEVEL / 5 + 2) * power * (atk / dfn) / 50 + 2) * effectiveness
         )
     else:
-        damage = 0  # miss
+        damage = 0
 
     missed = damage == 0 and effectiveness != 0.0
     return damage, effectiveness, missed
 
 
 def simulate_battle(p1, p1_move, p2, p2_move):
-    """Run a full turn-based battle. Returns (battle_log, hp_history, winner)."""
+    """Run a full turn-based battle between two Pokemon."""
     p1_hp = p1["stats"]["hp"]
     p2_hp = p2["stats"]["hp"]
 
-    battle_log = []  # list of dicts → pd.DataFrame later
+    battle_log = []
     hp_history = [
         {"round": 0, "pokemon": p1["name"], "hp": p1_hp},
         {"round": 0, "pokemon": p2["name"], "hp": p2_hp},
@@ -264,9 +246,7 @@ def simulate_battle(p1, p1_move, p2, p2_move):
     return battle_log, hp_history, winner
 
 
-# ══════════════════════════════════════════════
-# STREAMLIT DASHBOARD
-# ══════════════════════════════════════════════
+# Dashboard layout
 
 st.title("⚔️ Pokémon Combat Simulator")
 st.markdown(
@@ -275,9 +255,7 @@ st.markdown(
 
 st.divider()
 
-# ──────────────────────────────────────────────
-# Section 1 — Pokémon Selection
-# ──────────────────────────────────────────────
+# Pokemon selection
 st.header("🎯 Select Your Pokémon")
 
 col_sel1, col_sel2 = st.columns(2)
@@ -327,9 +305,7 @@ if p1["name"] == p2["name"]:
 
 st.divider()
 
-# ──────────────────────────────────────────────
-# Section 2 — Pokémon Display (sprites, name, types, stats)
-# ──────────────────────────────────────────────
+# Pokemon display
 st.header("📋 Pokémon Profiles")
 
 col_disp1, col_disp2 = st.columns(2)
@@ -345,12 +321,10 @@ for col, pkmn in [(col_disp1, p1), (col_disp2, p2)]:
 
 st.divider()
 
-# ──────────────────────────────────────────────
-# Section 3 — Move Selection (damaging moves only)
-# ──────────────────────────────────────────────
+# Move selection
 st.header("💥 Select Moves")
 
-with st.spinner("Loading available damaging moves… (cached after first load)"):
+with st.spinner("Loading available damaging moves…"):
     p1_damaging = get_damaging_moves(tuple(p1["moves"]))
     p2_damaging = get_damaging_moves(tuple(p2["moves"]))
 
@@ -395,9 +369,7 @@ with col_mv2:
 
 st.divider()
 
-# ──────────────────────────────────────────────
-# Section 4 — Stat Comparison Chart (Plotly grouped bar)
-# ──────────────────────────────────────────────
+# Stat comparison chart
 st.header("📊 Stat Comparison")
 
 stat_df = pd.DataFrame([
@@ -425,9 +397,7 @@ st.plotly_chart(fig_stats, use_container_width=True)
 
 st.divider()
 
-# ──────────────────────────────────────────────
-# Section 5 — Battle Simulation
-# ──────────────────────────────────────────────
+# Battle simulation
 st.header("⚔️ Battle!")
 
 col_btn1, col_btn2 = st.columns([3, 1])
@@ -460,9 +430,7 @@ if "battle_log" in st.session_state:
 
     st.divider()
 
-    # ──────────────────────────────────────────
-    # Section 6 — HP Over Time Chart
-    # ──────────────────────────────────────────
+    # HP over time chart
     st.header("📉 HP Over Time")
 
     hp_df = pd.DataFrame(hp_history)

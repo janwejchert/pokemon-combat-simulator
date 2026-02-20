@@ -6,8 +6,6 @@ An interactive Streamlit dashboard that lets you pick two Pokémon, compare thei
 
 👉 **[Click here to open the app](https://pokemon-combat-simulator.streamlit.app)**
 
-*(Update this URL if your Streamlit Community Cloud link differs after deployment.)*
-
 ## ✨ Features
 
 - **Pokémon Selection** — Choose from 30 popular Pokémon or type any name
