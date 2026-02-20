@@ -4,9 +4,9 @@ An interactive Streamlit dashboard that lets you pick two Pokémon, compare thei
 
 ## 🚀 Deployed App
 
-👉 **[Click here to open the app](https://your-app.streamlit.app)**
+👉 **[Click here to open the app](https://pokemon-combat-simulator.streamlit.app)**
 
-*(Replace the URL above with your actual Streamlit Community Cloud link after deployment.)*
+*(Update this URL if your Streamlit Community Cloud link differs after deployment.)*
 
 ## ✨ Features
 
